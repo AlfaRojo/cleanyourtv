@@ -56,3 +56,4 @@ fits the rules; keys from before the rule sit on its wanted list until a screens
 | `power_on_home_always` | <img src="switches/power_on_home_always.jpg" width="320" alt="power_on_home_always on a TV"> |
 | `season_scene` | <img src="switches/season_scene.jpg" width="320" alt="season_scene on a TV"> |
 | `season_month` | <img src="switches/season_month.jpg" width="320" alt="season_month on a TV"> |
+| `home_calm_minutes` | <img src="switches/home_calm_minutes.jpg" width="320" alt="home_calm_minutes on a TV"> |

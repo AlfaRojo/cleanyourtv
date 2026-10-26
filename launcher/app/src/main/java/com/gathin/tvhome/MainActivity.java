@@ -192,6 +192,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private TextView stats;
     /** season_scene: the month's landscape and animals behind Home; hidden and idle while off. */
     private SeasonView season;
+    /** home_calm_minutes in ms: how long Home sits untouched before the dock and buttons fade; 0 never. */
+    private long calmMs;
+    /** Home is cleared: the dock, buttons, app name and glow have faded until the next key. */
+    private boolean calm;
+    /** The key that woke a calm Home acts on nothing; its repeats and release are swallowed too. */
+    private boolean swallowWakeKey;
+    private final Runnable enterCalm = this::enterCalm;
+    private View[] calmViews;
+    private float[] calmAlpha;
+    private boolean[] calmSkipped;
+    private ValueAnimator wakeAnim;
     private List<RaceWeekend.Race> raceCalendar;
     private View racePanel;
     private TextView raceKicker, raceHeadline, raceSessions;
@@ -436,6 +447,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         sky.setIntensity(cfg.skyIntensity);
         season = findViewById(R.id.season);
         season.setup(cfg.seasonScene, cfg.seasonMonth, cfg.animations && !cfg.reducedMotion);
+        calmMs = cfg.homeCalmMinutes * MINUTE_MS;
         glass = findViewById(R.id.glass);
         glass.setStyle(cfg.glassStyle);
         if (festive) glass.setAccent(festival.accentColor());
@@ -987,7 +999,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         if (showStats) startStats();
         sky.update();
+        if (calm) leaveCalm(false);
         season.start();
+        restartCalm();
         wallpaperPlayer.start();
         handler.postDelayed(minuteTick, MINUTE_MS);
         if (festive && diya != null) {
@@ -1145,6 +1159,96 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     public void onUserInteraction() {
         super.onUserInteraction();
         restartIdleClock();
+        restartCalm();
+    }
+
+    // ---- calm Home (home_calm_minutes) ----------------------------------------------------------------------
+
+    private void restartCalm() {
+        root.removeCallbacks(enterCalm);
+        if (calmMs > 0 && !calm) root.postDelayed(enterCalm, calmMs);
+    }
+
+    private static boolean isVolumeKey(int code) {
+        return code == KeyEvent.KEYCODE_VOLUME_UP || code == KeyEvent.KEYCODE_VOLUME_DOWN
+                || code == KeyEvent.KEYCODE_VOLUME_MUTE;
+    }
+
+    /** Fades the dock, buttons, app name and glow away, leaving the clock over the background. */
+    private void enterCalm() {
+        if (calm) return;
+        // A menu, prompt or reorder in progress keeps Home as it is; try again after another full wait.
+        if (reordering || openPopup != null || cardPrompt != null || !hasWindowFocus()) {
+            restartCalm();
+            return;
+        }
+        calm = true;
+        if (wakeAnim != null) wakeAnim.cancel();
+        calmViews = new View[]{findViewById(R.id.topButtons), hero, grid, glass, ambient};
+        calmAlpha = new float[calmViews.length];
+        calmSkipped = new boolean[calmViews.length];
+        for (int i = 0; i < calmViews.length; i++) {
+            View v = calmViews[i];
+            calmSkipped[i] = v == null || v.getVisibility() != View.VISIBLE;
+            if (calmSkipped[i]) continue;
+            v.animate().cancel();
+            calmAlpha[i] = v.getAlpha();
+            // The glass and the glow are moved by other animations; hidden, they cannot come back on their own.
+            boolean hide = v == glass || v == ambient;
+            v.animate().alpha(0f).setStartDelay(0).setDuration(800)
+                    .withEndAction(() -> { if (calm && hide) v.setVisibility(View.INVISIBLE); }).start();
+        }
+    }
+
+    /** Brings Home back; animated, the dock's tiles rise one after another and the glass returns to its tile. */
+    private void leaveCalm(boolean animate) {
+        calm = false;
+        if (calmViews == null) return;
+        for (int i = 0; i < calmViews.length; i++) {
+            View v = calmViews[i];
+            if (calmSkipped[i]) continue;
+            v.animate().cancel();
+            v.setVisibility(View.VISIBLE);
+            if (!animate || v == grid) {
+                v.setAlpha(animate ? 0f : calmAlpha[i]);
+            } else {
+                v.animate().alpha(calmAlpha[i]).setStartDelay(v == glass ? 550 : 0).setDuration(500).start();
+            }
+        }
+        if (animate) riseTiles(calmAlpha[2]);
+    }
+
+    private void riseTiles(float gridAlpha) {
+        if (wakeAnim != null) wakeAnim.cancel();
+        final int n = grid.getChildCount();
+        final View[] tiles = new View[n];
+        for (int i = 0; i < n; i++) tiles[i] = grid.getChildAt(i);
+        final long step = 90, each = 450, delay = 150;
+        ValueAnimator a = ValueAnimator.ofFloat(0f, 1f);
+        a.setDuration(delay + each + step * Math.min(8, Math.max(0, n - 1)));
+        a.setInterpolator(null);
+        a.addUpdateListener(an -> {
+            long ms = an.getCurrentPlayTime();
+            grid.setAlpha(gridAlpha * Math.min(1f, ms / 300f));
+            for (int i = 0; i < n; i++) {
+                float u = Math.max(0f, Math.min(1f, (ms - delay - step * Math.min(i, 8)) / (float) each));
+                float e = 1 - (1 - u) * (1 - u) * (1 - u);
+                tiles[i].setTranslationY(tiles[i].getHeight() * .8f * (1 - e));
+                tiles[i].setAlpha(e);
+            }
+        });
+        a.addListener(new android.animation.AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(android.animation.Animator an) {
+                grid.setAlpha(gridAlpha);
+                for (View t : tiles) {
+                    t.setTranslationY(0f);
+                    t.setAlpha(1f);
+                }
+            }
+        });
+        wakeAnim = a;
+        a.start();
     }
 
     private void restartIdleClock() {
@@ -1159,6 +1263,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         endReorder();   // Home or another app while reordering keeps the order so far
         wallpaperPlayer.stop();
         season.stop();
+        root.removeCallbacks(enterCalm);
+        if (calm) leaveCalm(false);
         stopAmbientAnimation();
         hero.animate().cancel();
         ambient.animate().cancel();
@@ -1261,6 +1367,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      */
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
+        // A calm Home wakes on any key but volume, and that key does nothing else.
+        if ((calm || swallowWakeKey) && !isVolumeKey(event.getKeyCode())) {
+            if (calm && event.getAction() == KeyEvent.ACTION_DOWN) {
+                swallowWakeKey = true;
+                leaveCalm(true);
+                restartIdleClock();
+                restartCalm();
+            } else if (!calm && event.getAction() == KeyEvent.ACTION_UP) {
+                swallowWakeKey = false;
+            }
+            return true;
+        }
         if (handleSettingsKey(event)) return true;
         if (tileMenuEnabled && !reordering && openPopup == null && cardPrompt == null
                 && event.getKeyCode() == KeyEvent.KEYCODE_MENU) {
