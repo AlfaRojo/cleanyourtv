@@ -19,6 +19,7 @@ public class ClockDream extends DreamService {
         setContentView(R.layout.dream_clock);
         scene = new ClockScene(getWindow().getDecorView());
         scene.useHomeWallpaper(this);
+        if (scene.seasonal()) setScreenBright(true);   // a landscape dimmed to night looks broken
     }
 
     @Override

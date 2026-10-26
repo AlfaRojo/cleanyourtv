@@ -190,6 +190,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean lunar;
     private int lunarOffset;
     private TextView stats;
+    /** season_scene: the month's landscape and animals behind Home; hidden and idle while off. */
+    private SeasonView season;
     private List<RaceWeekend.Race> raceCalendar;
     private View racePanel;
     private TextView raceKicker, raceHeadline, raceSessions;
@@ -376,6 +378,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             // signal level, so only it needs this minute's binder calls (about 7 ms on the UI thread).
             if (festive) updateWifiLabel();
             sky.update();
+            season.update();
             wallpaperPlayer.update();
             handler.postDelayed(this, MINUTE_MS);
         }
@@ -431,9 +434,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         wallpaperPlayer = new WallpaperPlayer(this, root, cfg);
         sky = findViewById(R.id.sky);
         sky.setIntensity(cfg.skyIntensity);
+        season = findViewById(R.id.season);
+        season.setup(cfg.seasonScene, cfg.seasonMonth, cfg.animations && !cfg.reducedMotion);
         glass = findViewById(R.id.glass);
         glass.setStyle(cfg.glassStyle);
         if (festive) glass.setAccent(festival.accentColor());
+        else if (season.isOn()) glass.setAccent(season.accent());
         ambient = findViewById(R.id.ambient);
         // The glow is one bitmap, so its alpha can be applied while drawing it. Otherwise every frame of
         // a fade renders it into a full-screen offscreen buffer first.
@@ -981,6 +987,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         if (showStats) startStats();
         sky.update();
+        season.start();
         wallpaperPlayer.start();
         handler.postDelayed(minuteTick, MINUTE_MS);
         if (festive && diya != null) {
@@ -1151,6 +1158,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         root.removeCallbacks(showIdleClock);
         endReorder();   // Home or another app while reordering keeps the order so far
         wallpaperPlayer.stop();
+        season.stop();
         stopAmbientAnimation();
         hero.animate().cancel();
         ambient.animate().cancel();

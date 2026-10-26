@@ -5,6 +5,13 @@
     android:layout_height="match_parent"
     android:background="#FF000000">
 
+    <!-- The month's landscape behind the clock when season_scene is on. -->
+    <com.gathin.tvhome.SeasonView
+        android:id="@+id/dreamSeason"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
+
     <!-- The glow is its background; clock_wallpaper puts the picture in it, cropped like Home's. -->
     <ImageView
         android:id="@+id/dreamAmbient"

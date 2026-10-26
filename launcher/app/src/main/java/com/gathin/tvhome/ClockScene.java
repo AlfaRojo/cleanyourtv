@@ -37,6 +37,7 @@ final class ClockScene {
     private final Random random = new Random();
     private final View content;
     private final ImageView ambient;
+    private final SeasonView season;
     private final GradientDrawable glow;
     private int colorIndex;
     private int glowColor;
@@ -62,6 +63,10 @@ final class ClockScene {
     ClockScene(View root) {
         content = root.findViewById(R.id.dreamContent);
         ambient = root.findViewById(R.id.dreamAmbient);
+        season = root.findViewById(R.id.dreamSeason);
+        Config cfg = Config.load(root.getContext());
+        season.setup(cfg.seasonScene, cfg.seasonMonth, cfg.animations && !cfg.reducedMotion);
+        if (season.isOn()) ambient.setVisibility(View.GONE);
         glow = new GradientDrawable();
         glow.setGradientType(GradientDrawable.RADIAL_GRADIENT);
         ambient.setBackground(glow);
@@ -71,7 +76,13 @@ final class ClockScene {
         setGlow(PALETTE[colorIndex]);
     }
 
+    /** The month's landscape is behind the clock (season_scene). */
+    boolean seasonal() {
+        return season.isOn();
+    }
+
     void start() {
+        season.start();
         content.setAlpha(0f);
         content.post(() -> {
             placeClock();
@@ -83,6 +94,7 @@ final class ClockScene {
     }
 
     void stop() {
+        season.stop();
         handler.removeCallbacksAndMessages(null);   // the tick and any glow steps still queued
         content.animate().cancel();
         wallpaperGeneration++;   // a decode still running must not attach its picture to a stopped scene
@@ -95,6 +107,7 @@ final class ClockScene {
      * Call before start(), which starts the decode (again after a stop() that dropped an unfinished one).
      */
     void useHomeWallpaper(Context ctx) {
+        if (season.isOn()) return;   // season_scene draws its own landscape behind the clock
         Config cfg;
         try {
             cfg = Config.load(ctx);

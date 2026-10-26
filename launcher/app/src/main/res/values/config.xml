@@ -455,6 +455,13 @@
          (OLED panels); they still move every minute. Ignored while clock_wallpaper shows a picture. Can also be set
          with "clock_glow" in a theme. -->
     <bool name="clock_glow">true</bool>
+    <!-- The month's landscape drawn from code behind Home, the idle clock and the clock screensaver: animals that
+         breathe, hop or swim and the month's weather (snow, petals, bats, fireworks), about 30 frames a second
+         while Home or the screensaver shows and never behind an app. Still with reduced_motion or animations off.
+         Can also be set with "season_scene": true in a theme's config.json (themes/temporadas). -->
+    <bool name="season_scene">false</bool>
+    <!-- 1 to 12 keeps season_scene on that month; 0 (the default) follows the calendar. -->
+    <integer name="season_month">0</integer>
     <!-- Shape of the glow behind the focused app, in its colour: radial (a soft glow, the default) or horizon (the
          colour washes down from the top edge and fades to black, brightest along the top). The cinematic shelf
          keeps its own glow. Can also be set with "glow_style": "horizon" in a theme's config.json. -->

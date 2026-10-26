@@ -225,6 +225,10 @@ final class Config {
     final int cinematicScrim;
     /** A rotating collection's groups by time of day, as file names (config.xml, wallpaper_moods); empty rotates through all of it. */
     final Map<String, Set<String>> wallpaperMoods;
+    /** The month's animated landscape behind Home and the screensavers (config.xml / theme season_scene). */
+    final boolean seasonScene;
+    /** 1 to 12 keeps season_scene on that month; 0 follows the calendar. */
+    final int seasonMonth;
     /** Shape of the glow behind the focused app (config.xml, glow_style): {@link #GLOW_RADIAL} or {@link #GLOW_HORIZON}. */
     final String glowStyle;
     /** The focus highlight's look (config.xml, glass_style): {@link #GLASS_DEFAULT}, {@link #GLASS_RIM} or {@link #GLASS_HALO}. */
@@ -270,7 +274,8 @@ final class Config {
                    List<RaceWeekend.Race> raceCalendar, boolean cinematicHome, boolean ambientGlow, boolean appGlow, boolean fadeRows, int homeIdleClockMinutes,
                    boolean keyFilter, boolean dockGlass, String glowStyle, boolean wallpaperCaptions,
                    boolean handleViewInputs, boolean tileMenu, boolean dockEvenPadding, boolean dockBand, boolean cinematicDots, boolean cinematicWhiteFocus, boolean wifiStatusColor, int cinematicScrim, int cinematicArt,
-                   Map<String, Set<String>> wallpaperMoods, boolean gamepadPassthrough, boolean consumeVolumeKeys, boolean powerOnHome, boolean homeLongPressHome, boolean wifiStatusWarnings, List<String> topBarApps, boolean showGreeting, boolean headerWhite, boolean clockWallpaper, int clockWallpaperDim, boolean clockGlow, String glassStyle, boolean singleRow, boolean dockBandAll, boolean lunarDate, int lunarUtcOffset, boolean dateBelowClock, boolean vpnPill, String locale, boolean powerOnHomeAlways) {
+                   Map<String, Set<String>> wallpaperMoods, boolean gamepadPassthrough, boolean consumeVolumeKeys, boolean powerOnHome, boolean homeLongPressHome, boolean wifiStatusWarnings, List<String> topBarApps, boolean showGreeting, boolean headerWhite, boolean clockWallpaper, int clockWallpaperDim, boolean clockGlow, String glassStyle, boolean singleRow, boolean dockBandAll, boolean lunarDate, int lunarUtcOffset, boolean dateBelowClock, boolean vpnPill, String locale, boolean powerOnHomeAlways,
+                   boolean seasonScene, int seasonMonth) {
         this.handleViewInputs = handleViewInputs;
         this.tileMenu = tileMenu;
         this.inputKeycodes = inputKeycodes;
@@ -374,6 +379,8 @@ final class Config {
         this.clockGlow = clockGlow;
         this.singleRow = singleRow;
         this.dockBandAll = dockBandAll;
+        this.seasonScene = seasonScene;
+        this.seasonMonth = seasonMonth;
         this.glowStyle = glowStyle(glowStyle);
         this.wallpaperCaptions = wallpaperCaptions;
         this.glassStyle = glassStyle(glassStyle);
@@ -481,6 +488,8 @@ final class Config {
         int cinematicArt = res.getInteger(R.integer.cinematic_art);
         int cinematicScrim = res.getInteger(R.integer.cinematic_scrim);
         Map<String, Set<String>> wallpaperMoods = moods(res.getString(R.string.wallpaper_moods));
+        boolean seasonScene = res.getBoolean(R.bool.season_scene);
+        int seasonMonth = res.getInteger(R.integer.season_month);
         String glowStyle = res.getString(R.string.glow_style);
         boolean wifiStatusWarnings = res.getBoolean(R.bool.wifi_status_warnings);
         boolean dateBelowClock = res.getBoolean(R.bool.date_below_clock);
@@ -598,6 +607,8 @@ final class Config {
             clockGlow = bool(json, "clock_glow", clockGlow);
             singleRow = bool(json, "single_row", singleRow);
             dockBandAll = bool(json, "dock_band_all", dockBandAll);
+            seasonScene = bool(json, "season_scene", seasonScene);
+            seasonMonth = integer(json, "season_month", seasonMonth, 0, 12);
             glowStyle = string(json, "glow_style", glowStyle);
             glassStyle = string(json, "glass_style", glassStyle);
         }
@@ -660,7 +671,8 @@ final class Config {
                 dockBand, cinematicDots, cinematicWhiteFocus, wifiStatusColor, cinematicScrim, cinematicArt, wallpaperMoods, gamepadPassthrough,
                 consumeVolumeKeys, powerOnHome, homeLongPressHome, wifiStatusWarnings, topBarApps, showGreeting, headerWhite, clockWallpaper,
                 Math.max(0, Math.min(90, clockWallpaperDim)), clockGlow, glassStyle, singleRow && dockRow, dockBandAll, lunar, lunarOffset,
-                dateBelowClock, vpnPill, locale, powerOnHomeAlways);
+                dateBelowClock, vpnPill, locale, powerOnHomeAlways,
+                seasonScene, Math.max(0, Math.min(12, seasonMonth)));
     }
 
     /**
