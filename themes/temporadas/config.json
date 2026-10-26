@@ -1,0 +1,10 @@
+{
+  "season_scene": true,
+  "home_calm_minutes": 3,
+  "wallpaper": false,
+  "background_color": "#05070D",
+  "dock_glass": true,
+  "icon_only_buttons": true,
+  "ambient_glow": false,
+  "focus_overshoot": false
+}
